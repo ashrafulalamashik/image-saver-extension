@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Image Saver",
+  "version": "1.1.0",
+  "description": "Right-click any image to instantly save it as PNG, JPG, or WebP.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "Image Saver"
+  },
+  "permissions": [
+    "contextMenus",
+    "downloads",
+    "offscreen",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

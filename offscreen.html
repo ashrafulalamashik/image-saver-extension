@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<!--
+  offscreen.html
+  ──────────────
+  This document is never visible to the user.
+  Its sole purpose is to host offscreen.js, which requires a real DOM
+  context to use the Fetch API, HTMLImageElement, and HTMLCanvasElement
+  — none of which are available inside a Manifest V3 service worker.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Image Saver — Offscreen Worker</title>
+  </head>
+  <body>
+    <!--
+      The canvas is created programmatically in offscreen.js;
+      no visible elements are needed here.
+    -->
+    <script src="offscreen.js"></script>
+  </body>
+</html>
