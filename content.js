@@ -60,34 +60,48 @@ document.addEventListener('keydown', (e) => {
 });
 
 function performClipboardCopy(srcUrl) {
-  try {
-    const makeImagePromise = async () => {
+  (async () => {
+    try {
+      showToast('Preparing image for clipboard...');
       const response = await chrome.runtime.sendMessage({
         action: 'convertForClipboard',
         srcUrl: srcUrl
       });
-      if (response && response.success && response.dataUrl) {
-        const res = await fetch(response.dataUrl);
-        return await res.blob();
-      } else {
+      
+      if (!response || !response.success || !response.dataUrl) {
         throw new Error(response ? response.error : 'Failed to convert image');
       }
-    };
 
-    navigator.clipboard.write([
-      new ClipboardItem({
-        'image/png': makeImagePromise()
-      })
-    ]).then(() => {
-      showToast('Image copied to clipboard! 📋');
-    }).catch((err) => {
+      const res = await fetch(response.dataUrl);
+      const blob = await res.blob();
+
+      const writeBlob = async () => {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        showToast('Image copied to clipboard! 📋');
+      };
+
+      if (document.hasFocus()) {
+        await writeBlob();
+      } else {
+        showToast('Click anywhere on the page to copy 🖱️');
+        const onFocus = async () => {
+          window.removeEventListener('focus', onFocus);
+          try {
+            await writeBlob();
+          } catch (err) {
+            console.error(err);
+            showToast('Clipboard error: ' + err.message);
+          }
+        };
+        window.addEventListener('focus', onFocus);
+      }
+    } catch (err) {
       console.error('[ImageSaver] Clipboard write error:', err);
-      showToast('Failed to copy. Ensure page is focused.');
-    });
-  } catch (err) {
-    console.error(err);
-    showToast('Clipboard error: ' + err.message);
-  }
+      showToast('Failed to copy: ' + err.message);
+    }
+  })();
 }
 
 // ── 3. Toast Notification UI ──────────────────────────────────
