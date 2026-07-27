@@ -72,7 +72,7 @@ function showToast(message) {
   }, 3000);
 }
 
-// ── 4. Message Listener for Popup ─────────────────────────────
+// ── 4. Message Listener for Popup & Background ──────────────────
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'getImages') {
@@ -85,5 +85,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const uniqueImages = [...new Set(images)];
     
     sendResponse({ images: uniqueImages });
+  } else if (request.action === 'copyToClipboard') {
+    // Write image to clipboard from the active page (which has focus)
+    (async () => {
+      try {
+        const res = await fetch(request.dataUrl);
+        const blob = await res.blob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        sendResponse({ success: true });
+      } catch (err) {
+        console.error('[ImageSaver] Clipboard write failed:', err);
+        sendResponse({ error: 'Ensure the page is focused. ' + err.message });
+      }
+    })();
+    return true; // Keep channel open for async response
   }
 });

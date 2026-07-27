@@ -93,7 +93,20 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await ensureOffscreenDocument();
 
     if (format.copy) {
-      await copyImageToClipboard(info.srcUrl);
+      const dataUrl = await convertImage(info.srcUrl, format.mimeType);
+      
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) throw new Error('No active tab found to perform clipboard copy.');
+
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'copyToClipboard',
+        dataUrl: dataUrl
+      });
+
+      if (response && response.error) {
+        throw new Error(response.error);
+      }
+
       chrome.notifications.create({
         type: 'basic',
         iconUrl: 'icons/icon128.png',
@@ -186,43 +199,6 @@ function convertImage(srcUrl, mimeType) {
       messageId,
       srcUrl,
       mimeType,
-    });
-  });
-}
-
-/**
- * Sends the image URL to offscreen.js to copy as PNG.
- * Returns a Promise that resolves when the copy is complete.
- */
-function copyImageToClipboard(srcUrl) {
-  return new Promise((resolve, reject) => {
-    const messageId = `img_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-
-    const timeoutId = setTimeout(() => {
-      chrome.runtime.onMessage.removeListener(listener);
-      reject(new Error('Copy timed out after 30 seconds.'));
-    }, CONVERSION_TIMEOUT_MS);
-
-    const listener = (message) => {
-      if (message.messageId !== messageId) return;
-
-      clearTimeout(timeoutId);
-      chrome.runtime.onMessage.removeListener(listener);
-
-      if (message.error) {
-        reject(new Error(message.error));
-      } else {
-        resolve();
-      }
-    };
-
-    chrome.runtime.onMessage.addListener(listener);
-
-    chrome.runtime.sendMessage({
-      target: 'offscreen',
-      action: 'copyImage',
-      messageId,
-      srcUrl,
     });
   });
 }
