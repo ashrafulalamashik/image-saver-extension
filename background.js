@@ -94,10 +94,15 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
     if (format.copy) {
       if (tab && tab.id) {
-        chrome.tabs.sendMessage(tab.id, {
-          action: 'triggerCopy',
-          srcUrl: info.srcUrl
-        });
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            action: 'triggerCopy',
+            srcUrl: info.srcUrl
+          });
+        } catch (err) {
+          console.error('[ImageSaver] Failed to send message to tab:', err);
+          showErrorNotification('Cannot copy from this page. Please refresh the page or try a regular website.');
+        }
       }
     } else {
       const dataUrl = await convertImage(info.srcUrl, format.mimeType);
