@@ -23,3 +23,66 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Tooltip Styles (Alt+I) */
+.image-saver-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid #4F8EF7;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  color: #333;
+  width: 280px;
+  pointer-events: auto;
+}
+
+.image-saver-tooltip strong {
+  color: #4F8EF7;
+  font-size: 14px;
+}
+
+.image-saver-tooltip hr {
+  border: 0;
+  border-top: 1px solid #eee;
+  margin: 8px 0;
+}
+
+.image-saver-tooltip-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #999;
+  line-height: 1;
+}
+
+.image-saver-tooltip-close:hover {
+  color: #ff4d4f;
+}
+
+.is-info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.is-info-row span:first-child {
+  font-weight: 500;
+  color: #666;
+}
+
+.is-info-row .is-truncate {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}

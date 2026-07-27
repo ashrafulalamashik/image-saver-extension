@@ -65,16 +65,43 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'WebP  (modern format)',
     contexts: ['image'],
   });
+
+  // Child: Copy as Base64
+  chrome.contextMenus.create({
+    id: 'imageSaver_base64',
+    parentId: 'imageSaver_parent',
+    title: 'Copy as Base64 (Dev)',
+    contexts: ['image'],
+  });
+
+  // Extract All Images (Page Context)
+  chrome.contextMenus.create({
+    id: 'imageSaver_extract',
+    title: 'Extract Hidden Images',
+    contexts: ['page'],
+  });
 });
 
 // ── 2. Context Menu Click Handler ─────────────────────────────
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === 'imageSaver_extract') {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: 'Image Saver',
+      message: 'Click the extension icon in the top right to open the Bulk Downloader. It will automatically detect all hidden CSS images!',
+      priority: 0,
+    });
+    return;
+  }
+
   const formatMap = {
     imageSaver_png:  { mimeType: 'image/png',  ext: 'png'  },
     imageSaver_jpg:  { mimeType: 'image/jpeg', ext: 'jpg'  },
     imageSaver_webp: { mimeType: 'image/webp', ext: 'webp' },
     imageSaver_copy_png: { mimeType: 'image/png', ext: 'png', copy: true },
+    imageSaver_base64: { mimeType: 'image/png', ext: 'png', base64: true },
   };
 
   const format = formatMap[info.menuItemId];
@@ -92,7 +119,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
     await ensureOffscreenDocument();
 
-    if (format.copy) {
+    if (format.base64) {
+      if (tab && tab.id) {
+        try {
+          const dataUrl = await convertImage(info.srcUrl, format.mimeType);
+          await chrome.tabs.sendMessage(tab.id, {
+            action: 'copyBase64',
+            text: dataUrl
+          });
+        } catch (err) {
+          showErrorNotification('Failed to copy Base64.');
+        }
+      }
+    } else if (format.copy) {
       if (tab && tab.id) {
         try {
           await chrome.tabs.sendMessage(tab.id, {
