@@ -65,6 +65,9 @@ body {
   cursor: pointer;
   color: white;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tool-btn:hover {
@@ -74,6 +77,16 @@ body {
 .tool-btn.active {
   background: #4F8EF7;
   border-color: #4F8EF7;
+}
+
+.ai-btn {
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  font-weight: 600;
+  padding: 6px 12px;
+}
+
+.ai-btn:hover {
+  background: linear-gradient(135deg, #FF8E53, #FF6B6B);
 }
 
 .divider {

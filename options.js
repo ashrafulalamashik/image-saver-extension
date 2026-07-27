@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const folderNameInput = document.getElementById('folderName');
   const namePrefixInput = document.getElementById('namePrefix');
   const appendTimestampCheckbox = document.getElementById('appendTimestamp');
+  const removeBgApiKeyInput = document.getElementById('removeBgApiKey');
   const saveBtn = document.getElementById('saveBtn');
   const statusMsg = document.getElementById('status');
 
@@ -9,11 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
   chrome.storage.sync.get({
     folderName: '',
     namePrefix: '',
-    appendTimestamp: false
+    appendTimestamp: false,
+    removeBgApiKey: ''
   }, (items) => {
     folderNameInput.value = items.folderName;
     namePrefixInput.value = items.namePrefix;
     appendTimestampCheckbox.checked = items.appendTimestamp;
+    removeBgApiKeyInput.value = items.removeBgApiKey;
   });
 
   // Save settings
@@ -21,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const folderName = folderNameInput.value.trim();
     const namePrefix = namePrefixInput.value.trim();
     const appendTimestamp = appendTimestampCheckbox.checked;
+    const removeBgApiKey = removeBgApiKeyInput.value.trim();
 
     // Optional: Validate folder name to prevent dangerous paths
     const safeFolderName = folderName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim();
@@ -28,7 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.sync.set({
       folderName: safeFolderName,
       namePrefix: namePrefix,
-      appendTimestamp: appendTimestamp
+      appendTimestamp: appendTimestamp,
+      removeBgApiKey: removeBgApiKey
     }, () => {
       // Update UI to show changes were saved
       if (folderName !== safeFolderName) {

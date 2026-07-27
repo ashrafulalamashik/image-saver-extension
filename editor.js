@@ -165,6 +165,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveState();
   });
 
+  // Remove Background
+  document.getElementById('btnRemoveBg').addEventListener('click', async () => {
+    const settings = await chrome.storage.sync.get({ removeBgApiKey: '' });
+    if (!settings.removeBgApiKey) {
+      alert("Please add your Remove.bg API Key in the Image Saver Settings page first.");
+      chrome.runtime.openOptionsPage();
+      return;
+    }
+
+    loading.innerHTML = "Removing Background ✨<br><small style='font-size:14px; font-weight:normal; margin-top:8px;'>Please wait...</small>";
+    loading.classList.remove('hidden');
+
+    try {
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      
+      const formData = new FormData();
+      formData.append('image_file', blob);
+      formData.append('size', 'auto');
+
+      const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': settings.removeBgApiKey
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.errors?.[0]?.title || `API Error: ${response.status}`);
+      }
+
+      const newBlob = await response.blob();
+      const url = URL.createObjectURL(newBlob);
+      
+      const img = new Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        saveState();
+        URL.revokeObjectURL(url);
+        loading.classList.add('hidden');
+      };
+      img.src = url;
+    } catch (err) {
+      alert("Failed to remove background: " + err.message);
+      loading.classList.add('hidden');
+    }
+  });
+
   // Download Action
   document.getElementById('btnDownload').addEventListener('click', () => {
     const format = document.getElementById('exportFormat').value; // e.g. image/png
