@@ -80,6 +80,13 @@ chrome.runtime.onInstalled.addListener(() => {
     title: 'Extract Hidden Images',
     contexts: ['page'],
   });
+
+  // Edit Image
+  chrome.contextMenus.create({
+    id: 'imageSaver_edit',
+    title: 'Edit & Save Image 🎨',
+    contexts: ['image'],
+  });
 });
 
 // ── 2. Context Menu Click Handler ─────────────────────────────
@@ -92,6 +99,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       title: 'Image Saver',
       message: 'Click the extension icon in the top right to open the Bulk Downloader. It will automatically detect all hidden CSS images!',
       priority: 0,
+    });
+    return;
+  }
+
+  if (info.menuItemId === 'imageSaver_edit') {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('editor.html?url=' + encodeURIComponent(info.srcUrl))
     });
     return;
   }
@@ -308,12 +322,19 @@ function showErrorNotification(errorMessage) {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'downloadImage') {
-    // Called by content.js (Alt+P) or popup.js
+    // Called by content.js (Alt+P) or popup.js or editor.js
     (async () => {
       try {
         await ensureOffscreenDocument();
         const settings = await chrome.storage.sync.get({ folderName: '', namePrefix: '', appendTimestamp: false });
-        const dataUrl = await convertImage(request.srcUrl, request.mimeType || 'image/png');
+        
+        let dataUrl;
+        if (request.customDataUrl) {
+          dataUrl = request.customDataUrl; // from editor
+        } else {
+          dataUrl = await convertImage(request.srcUrl, request.mimeType || 'image/png');
+        }
+        
         const filename = buildFilename(request.srcUrl, request.ext || 'png', settings);
 
         chrome.downloads.download({

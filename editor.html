@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Saver - Editor</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <div class="editor-container">
+    <header class="toolbar">
+      <div class="brand">
+        <img src="icons/icon48.png" alt="Logo">
+        <span>Image Editor</span>
+      </div>
+      
+      <div class="tools">
+        <button id="toolMove" class="tool-btn active" title="Move/Pan">🖐️</button>
+        <button id="toolDraw" class="tool-btn" title="Draw">🖌️</button>
+        <button id="toolArrow" class="tool-btn" title="Arrow">↗️</button>
+        <button id="toolRect" class="tool-btn" title="Rectangle">⬜</button>
+        <div class="divider"></div>
+        <input type="color" id="colorPicker" value="#ff0000" title="Pick Color">
+        <input type="range" id="lineWidth" min="1" max="20" value="4" title="Line Width">
+        <div class="divider"></div>
+        <button id="btnUndo" class="tool-btn" title="Undo">↩️</button>
+        <button id="btnClear" class="tool-btn" title="Clear Edits">🗑️</button>
+      </div>
+
+      <div class="actions">
+        <select id="exportFormat">
+          <option value="image/png">PNG</option>
+          <option value="image/jpeg">JPG</option>
+          <option value="image/webp">WebP</option>
+        </select>
+        <button id="btnDownload" class="primary-btn">Download Image</button>
+      </div>
+    </header>
+
+    <main class="canvas-area">
+      <div id="loading" class="loading-overlay">Loading Image...</div>
+      <canvas id="editorCanvas"></canvas>
+    </main>
+  </div>
+
+  <script src="editor.js"></script>
+</body>
+</html>
