@@ -16,12 +16,17 @@
     "default_title": "Image Saver",
     "default_popup": "popup.html"
   },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "permissions": [
     "contextMenus",
     "downloads",
     "offscreen",
     "notifications",
-    "clipboardWrite"
+    "clipboardWrite",
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"

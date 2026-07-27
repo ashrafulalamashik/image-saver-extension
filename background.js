@@ -144,8 +144,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         }
       }
     } else {
+      const settings = await chrome.storage.sync.get({ folderName: '', namePrefix: '', appendTimestamp: false });
       const dataUrl = await convertImage(info.srcUrl, format.mimeType);
-      const filename = buildFilename(info.srcUrl, format.ext);
+      const filename = buildFilename(info.srcUrl, format.ext, settings);
 
       chrome.downloads.download({
         url: dataUrl,
@@ -235,33 +236,55 @@ function convertImage(srcUrl, mimeType) {
 // ── 5. Helpers ─────────────────────────────────────────────────
 
 /**
- * Derives a clean filename from the source URL.
- * Preserves Unicode characters (letters, numbers, dashes, underscores, dots).
- * Only strips filesystem-unsafe characters.
- * Falls back to a timestamped name if the URL has no parseable filename.
+ * Derives a clean filename from the source URL and applies user settings.
  *
  * @param {string} srcUrl
  * @param {string} ext - Target extension without dot, e.g. 'png'
+ * @param {object} settings - User settings (folderName, namePrefix, appendTimestamp)
  * @returns {string}
  */
-function buildFilename(srcUrl, ext) {
+function buildFilename(srcUrl, ext, settings = { folderName: '', namePrefix: '', appendTimestamp: false }) {
+  let base = 'image';
+  
   try {
     const url = new URL(srcUrl);
-    // Get the last path segment, strip any existing extension
     const segments = url.pathname.split('/').filter(Boolean);
     const last = segments[segments.length - 1] || '';
-    // Decode URI component to handle %XX encoded Unicode chars
     const decoded = decodeURIComponent(last);
+    
     // Strip file extension, then remove only filesystem-unsafe chars
-    // Keeps: Unicode letters, digits, spaces, hyphens, underscores, dots
-    const base = decoded
+    const extracted = decoded
       .replace(/\.[^.]+$/, '')
-      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')  // only strip FS-unsafe chars
-      .trim() || 'image';
-    return `${base}.${ext}`;
-  } catch {
-    return `image_${Date.now()}.${ext}`;
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+      .trim();
+      
+    if (extracted) base = extracted;
+  } catch (e) {
+    // URL parsing failed (e.g. data URI), fallback to 'image'
   }
+
+  // Apply Prefix
+  if (settings.namePrefix) {
+    base = settings.namePrefix + base;
+  }
+
+  // Apply Timestamp
+  if (settings.appendTimestamp) {
+    base = `${base}_${Date.now()}`;
+  }
+
+  let finalName = `${base}.${ext}`;
+
+  // Apply Folder
+  if (settings.folderName) {
+    // Sanitize folder name just in case
+    const safeFolder = settings.folderName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '').trim();
+    if (safeFolder) {
+      finalName = `${safeFolder}/${finalName}`;
+    }
+  }
+
+  return finalName;
 }
 
 // ── 6. Error Notifications ────────────────────────────────────
@@ -289,8 +312,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
       try {
         await ensureOffscreenDocument();
+        const settings = await chrome.storage.sync.get({ folderName: '', namePrefix: '', appendTimestamp: false });
         const dataUrl = await convertImage(request.srcUrl, request.mimeType || 'image/png');
-        const filename = buildFilename(request.srcUrl, request.ext || 'png');
+        const filename = buildFilename(request.srcUrl, request.ext || 'png', settings);
 
         chrome.downloads.download({
           url: dataUrl,

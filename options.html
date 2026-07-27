@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Saver - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <img src="icons/icon48.png" alt="Logo">
+        <h1>Image Saver Settings</h1>
+      </div>
+      <p>Organize your downloaded images automatically.</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>📂 Save Location</h2>
+        <p class="desc">Set a default folder for all saved images. This folder will be created inside your browser's default Downloads folder.</p>
+        
+        <div class="form-group">
+          <label for="folderName">Folder Name</label>
+          <div class="input-wrapper">
+            <span class="prefix">Downloads / </span>
+            <input type="text" id="folderName" placeholder="e.g. Inspirations, UI_Assets">
+          </div>
+          <small>Leave blank to save directly in the Downloads folder.</small>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>📝 File Naming Rules</h2>
+        <p class="desc">Customize how images are renamed when downloaded.</p>
+        
+        <div class="form-group">
+          <label for="namePrefix">Prefix</label>
+          <input type="text" id="namePrefix" placeholder="e.g. img_, project_x_">
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="appendTimestamp">
+            Append Timestamp (Prevents overwriting files)
+          </label>
+        </div>
+      </section>
+
+      <div class="actions">
+        <span id="status" class="status-msg"></span>
+        <button id="saveBtn" class="primary-btn">Save Settings</button>
+      </div>
+    </main>
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>
