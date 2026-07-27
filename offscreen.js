@@ -46,10 +46,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       });
   }
 
-  // Return true to keep the message channel open for async reply.
-  // (We use sendMessage rather than sendResponse so this isn't strictly
-  //  required, but it's good practice.)
-  return true;
+  // Return false because we reply using chrome.runtime.sendMessage instead of sendResponse.
+  // Returning true without calling sendResponse causes a "message channel closed" error.
+  return false;
 });
 
 // ── Core Conversion Pipeline ───────────────────────────────────
