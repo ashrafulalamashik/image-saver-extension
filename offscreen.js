@@ -10,24 +10,41 @@
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // Only handle messages addressed to this offscreen document
-  if (message.target !== 'offscreen' || message.action !== 'convertImage') {
+  if (message.target !== 'offscreen' || !['convertImage', 'copyImage'].includes(message.action)) {
     return false; // not for us — don't claim the message
   }
 
-  handleConversion(message)
-    .then((dataUrl) => {
-      chrome.runtime.sendMessage({
-        messageId: message.messageId,
-        dataUrl,
+  if (message.action === 'convertImage') {
+    handleConversion(message)
+      .then((dataUrl) => {
+        chrome.runtime.sendMessage({
+          messageId: message.messageId,
+          dataUrl,
+        });
+      })
+      .catch((err) => {
+        console.error('[ImageSaver/offscreen] Error:', err);
+        chrome.runtime.sendMessage({
+          messageId: message.messageId,
+          error: err.message ?? String(err),
+        });
       });
-    })
-    .catch((err) => {
-      console.error('[ImageSaver/offscreen] Error:', err);
-      chrome.runtime.sendMessage({
-        messageId: message.messageId,
-        error: err.message ?? String(err),
+  } else if (message.action === 'copyImage') {
+    handleCopy(message)
+      .then(() => {
+        chrome.runtime.sendMessage({
+          messageId: message.messageId,
+          success: true,
+        });
+      })
+      .catch((err) => {
+        console.error('[ImageSaver/offscreen] Copy Error:', err);
+        chrome.runtime.sendMessage({
+          messageId: message.messageId,
+          error: err.message ?? String(err),
+        });
       });
-    });
+  }
 
   // Return true to keep the message channel open for async reply.
   // (We use sendMessage rather than sendResponse so this isn't strictly
@@ -115,6 +132,28 @@ async function handleConversion({ srcUrl, mimeType }) {
     // Always revoke the object URL to free memory
     URL.revokeObjectURL(objectUrl);
   }
+}
+
+/**
+ * Converts the image to a PNG blob and writes it to the clipboard.
+ * 
+ * @param {{ srcUrl: string }} param0
+ * @returns {Promise<void>}
+ */
+async function handleCopy({ srcUrl }) {
+  // Use handleConversion to get a data URL for PNG
+  const dataUrl = await handleConversion({ srcUrl, mimeType: 'image/png' });
+  
+  // Convert Data URL to Blob
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  
+  // Write to clipboard (Requires 'clipboardWrite' permission and CLIPBOARD offscreen reason)
+  await navigator.clipboard.write([
+    new ClipboardItem({
+      'image/png': blob
+    })
+  ]);
 }
 
 // ── Helpers ────────────────────────────────────────────────────

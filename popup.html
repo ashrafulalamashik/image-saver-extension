@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Saver - Bulk Downloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <img src="icons/icon48.png" alt="Logo">
+      <h1>Image Saver</h1>
+    </div>
+  </header>
+  
+  <div class="controls">
+    <div class="control-group">
+      <label for="formatSelect">Format:</label>
+      <select id="formatSelect">
+        <option value="png">PNG (Lossless)</option>
+        <option value="jpg">JPG (Smaller)</option>
+        <option value="webp">WebP (Modern)</option>
+      </select>
+    </div>
+    
+    <div class="control-actions">
+      <button id="selectAllBtn" class="secondary-btn">Select All</button>
+      <button id="downloadBtn" class="primary-btn" disabled>Download (0)</button>
+    </div>
+  </div>
+
+  <main>
+    <div id="loading" class="state-message">Finding images...</div>
+    <div id="noImages" class="state-message hidden">No images found on this page.</div>
+    <div id="imageGrid" class="image-grid hidden"></div>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+/* content.css — Image Saver Visual Feedback */
+
+.image-saver-toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #4F8EF7, #00D2FF);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 999999;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.image-saver-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}

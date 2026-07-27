@@ -9,10 +9,9 @@
 // =============================================================
 
 const OFFSCREEN_HTML = 'offscreen.html';
-const OFFSCREEN_REASON = chrome.offscreen.Reason.BLOBS;
+const OFFSCREEN_REASONS = [chrome.offscreen.Reason.BLOBS, chrome.offscreen.Reason.CLIPBOARD];
 const OFFSCREEN_JUSTIFICATION =
-  'Fetch remote image, draw to Canvas, and export as Blob/Data URL ' +
-  'for format conversion — DOM & Canvas unavailable in service workers.';
+  'Fetch remote image, draw to Canvas, export as Blob/Data URL for format conversion, and write to clipboard.';
 
 /** Timeout for offscreen conversion (30 seconds) */
 const CONVERSION_TIMEOUT_MS = 30_000;
@@ -43,6 +42,14 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ['image'],
   });
 
+  // Child: Copy as PNG
+  chrome.contextMenus.create({
+    id: 'imageSaver_copy_png',
+    parentId: 'imageSaver_parent',
+    title: 'Copy as PNG',
+    contexts: ['image'],
+  });
+
   // Child: JPG
   chrome.contextMenus.create({
     id: 'imageSaver_jpg',
@@ -67,6 +74,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     imageSaver_png:  { mimeType: 'image/png',  ext: 'png'  },
     imageSaver_jpg:  { mimeType: 'image/jpeg', ext: 'jpg'  },
     imageSaver_webp: { mimeType: 'image/webp', ext: 'webp' },
+    imageSaver_copy_png: { mimeType: 'image/png', ext: 'png', copy: true },
   };
 
   const format = formatMap[info.menuItemId];
@@ -84,14 +92,25 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
     await ensureOffscreenDocument();
 
-    const dataUrl = await convertImage(info.srcUrl, format.mimeType);
-    const filename = buildFilename(info.srcUrl, format.ext);
+    if (format.copy) {
+      await copyImageToClipboard(info.srcUrl);
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'Image Saver',
+        message: 'Image copied to clipboard as PNG!',
+        priority: 0,
+      });
+    } else {
+      const dataUrl = await convertImage(info.srcUrl, format.mimeType);
+      const filename = buildFilename(info.srcUrl, format.ext);
 
-    chrome.downloads.download({
-      url: dataUrl,
-      filename: filename,
-      saveAs: false,           // set to true if you want a Save dialog
-    });
+      chrome.downloads.download({
+        url: dataUrl,
+        filename: filename,
+        saveAs: false,           // set to true if you want a Save dialog
+      });
+    }
   } catch (err) {
     console.error('[ImageSaver] Conversion failed:', err);
     showErrorNotification(err.message || 'Image conversion failed.');
@@ -118,7 +137,7 @@ async function ensureOffscreenDocument() {
 
   await chrome.offscreen.createDocument({
     url: OFFSCREEN_HTML,
-    reasons: [OFFSCREEN_REASON],
+    reasons: OFFSCREEN_REASONS,
     justification: OFFSCREEN_JUSTIFICATION,
   });
 }
@@ -171,6 +190,43 @@ function convertImage(srcUrl, mimeType) {
   });
 }
 
+/**
+ * Sends the image URL to offscreen.js to copy as PNG.
+ * Returns a Promise that resolves when the copy is complete.
+ */
+function copyImageToClipboard(srcUrl) {
+  return new Promise((resolve, reject) => {
+    const messageId = `img_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
+    const timeoutId = setTimeout(() => {
+      chrome.runtime.onMessage.removeListener(listener);
+      reject(new Error('Copy timed out after 30 seconds.'));
+    }, CONVERSION_TIMEOUT_MS);
+
+    const listener = (message) => {
+      if (message.messageId !== messageId) return;
+
+      clearTimeout(timeoutId);
+      chrome.runtime.onMessage.removeListener(listener);
+
+      if (message.error) {
+        reject(new Error(message.error));
+      } else {
+        resolve();
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(listener);
+
+    chrome.runtime.sendMessage({
+      target: 'offscreen',
+      action: 'copyImage',
+      messageId,
+      srcUrl,
+    });
+  });
+}
+
 // ── 5. Helpers ─────────────────────────────────────────────────
 
 /**
@@ -219,3 +275,30 @@ function showErrorNotification(errorMessage) {
     priority: 1,
   });
 }
+
+// ── 7. Message Listener for Content/Popup Scripts ──────────────
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'downloadImage') {
+    // Called by content.js (Alt+P) or popup.js
+    (async () => {
+      try {
+        await ensureOffscreenDocument();
+        const dataUrl = await convertImage(request.srcUrl, request.mimeType || 'image/png');
+        const filename = buildFilename(request.srcUrl, request.ext || 'png');
+
+        chrome.downloads.download({
+          url: dataUrl,
+          filename: filename,
+          saveAs: false,
+        });
+        sendResponse({ success: true });
+      } catch (err) {
+        console.error('[ImageSaver] Download failed via message:', err);
+        showErrorNotification(err.message || 'Image download failed.');
+        sendResponse({ error: err.message });
+      }
+    })();
+    return true; // Keep channel open for async response
+  }
+});
