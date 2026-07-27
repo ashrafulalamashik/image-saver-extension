@@ -23,10 +23,10 @@ document.addEventListener('mouseout', (e) => {
   }
 }, true);
 
-// ── 2. Keyboard Shortcut (Alt+P) ──────────────────────────────
+// ── 2. Keyboard Shortcuts (Alt+P, Alt+C) ──────────────────────────────
 
 document.addEventListener('keydown', (e) => {
-  // Check for Alt + P (keyCode 80 is 'P', or just e.key === 'p' or 'P')
+  // Check for Alt + P (Download)
   if (e.altKey && e.key.toLowerCase() === 'p') {
     if (hoveredImage && hoveredImage.src) {
       e.preventDefault(); // Prevent default browser behavior
@@ -44,6 +44,35 @@ document.addEventListener('keydown', (e) => {
           showToast('Image saved successfully! 🖼️');
         } else {
           showToast('Failed to save image. ❌');
+        }
+      });
+    }
+  }
+
+  // Check for Alt + C (Copy as PNG)
+  if (e.altKey && e.key.toLowerCase() === 'c') {
+    if (hoveredImage && hoveredImage.src) {
+      e.preventDefault(); 
+      const srcUrl = hoveredImage.src;
+      showToast('Copying image to clipboard...');
+
+      chrome.runtime.sendMessage({
+        action: 'copyHoveredImage',
+        srcUrl: srcUrl
+      }, async (response) => {
+        if (response && response.success && response.dataUrl) {
+          try {
+            const res = await fetch(response.dataUrl);
+            const blob = await res.blob();
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            showToast('Image copied to clipboard! 📋');
+          } catch (err) {
+            showToast('Failed to copy. Ensure page is focused.');
+          }
+        } else {
+          showToast('Failed to convert image for copying. ❌');
         }
       });
     }

@@ -276,5 +276,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
     return true; // Keep channel open for async response
+  } else if (request.action === 'copyHoveredImage') {
+    (async () => {
+      try {
+        await ensureOffscreenDocument();
+        const dataUrl = await convertImage(request.srcUrl, 'image/png');
+        sendResponse({ success: true, dataUrl: dataUrl });
+      } catch (err) {
+        console.error('[ImageSaver] Copy via shortcut failed:', err);
+        showErrorNotification(err.message || 'Image copy failed.');
+        sendResponse({ error: err.message });
+      }
+    })();
+    return true; // Keep channel open for async response
   }
 });
