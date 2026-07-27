@@ -93,27 +93,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await ensureOffscreenDocument();
 
     if (format.copy) {
-      const dataUrl = await convertImage(info.srcUrl, format.mimeType);
-      
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab) throw new Error('No active tab found to perform clipboard copy.');
-
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: 'copyToClipboard',
-        dataUrl: dataUrl
-      });
-
-      if (response && response.error) {
-        throw new Error(response.error);
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, {
+          action: 'triggerCopy',
+          srcUrl: info.srcUrl
+        });
       }
-
-      chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon128.png',
-        title: 'Image Saver',
-        message: 'Image copied to clipboard as PNG!',
-        priority: 0,
-      });
     } else {
       const dataUrl = await convertImage(info.srcUrl, format.mimeType);
       const filename = buildFilename(info.srcUrl, format.ext);
@@ -276,14 +261,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
     return true; // Keep channel open for async response
-  } else if (request.action === 'copyHoveredImage') {
+  } else if (request.action === 'convertForClipboard') {
     (async () => {
       try {
         await ensureOffscreenDocument();
         const dataUrl = await convertImage(request.srcUrl, 'image/png');
         sendResponse({ success: true, dataUrl: dataUrl });
       } catch (err) {
-        console.error('[ImageSaver] Copy via shortcut failed:', err);
+        console.error('[ImageSaver] Conversion for clipboard failed:', err);
         showErrorNotification(err.message || 'Image copy failed.');
         sendResponse({ error: err.message });
       }

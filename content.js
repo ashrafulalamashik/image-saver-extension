@@ -53,31 +53,42 @@ document.addEventListener('keydown', (e) => {
   if (e.altKey && e.key.toLowerCase() === 'c') {
     if (hoveredImage && hoveredImage.src) {
       e.preventDefault(); 
-      const srcUrl = hoveredImage.src;
       showToast('Copying image to clipboard...');
-
-      chrome.runtime.sendMessage({
-        action: 'copyHoveredImage',
-        srcUrl: srcUrl
-      }, async (response) => {
-        if (response && response.success && response.dataUrl) {
-          try {
-            const res = await fetch(response.dataUrl);
-            const blob = await res.blob();
-            await navigator.clipboard.write([
-              new ClipboardItem({ 'image/png': blob })
-            ]);
-            showToast('Image copied to clipboard! 📋');
-          } catch (err) {
-            showToast('Failed to copy. Ensure page is focused.');
-          }
-        } else {
-          showToast('Failed to convert image for copying. ❌');
-        }
-      });
+      performClipboardCopy(hoveredImage.src);
     }
   }
 });
+
+function performClipboardCopy(srcUrl) {
+  try {
+    const makeImagePromise = async () => {
+      const response = await chrome.runtime.sendMessage({
+        action: 'convertForClipboard',
+        srcUrl: srcUrl
+      });
+      if (response && response.success && response.dataUrl) {
+        const res = await fetch(response.dataUrl);
+        return await res.blob();
+      } else {
+        throw new Error(response ? response.error : 'Failed to convert image');
+      }
+    };
+
+    navigator.clipboard.write([
+      new ClipboardItem({
+        'image/png': makeImagePromise()
+      })
+    ]).then(() => {
+      showToast('Image copied to clipboard! 📋');
+    }).catch((err) => {
+      console.error('[ImageSaver] Clipboard write error:', err);
+      showToast('Failed to copy. Ensure page is focused.');
+    });
+  } catch (err) {
+    console.error(err);
+    showToast('Clipboard error: ' + err.message);
+  }
+}
 
 // ── 3. Toast Notification UI ──────────────────────────────────
 
@@ -114,21 +125,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const uniqueImages = [...new Set(images)];
     
     sendResponse({ images: uniqueImages });
-  } else if (request.action === 'copyToClipboard') {
-    // Write image to clipboard from the active page (which has focus)
-    (async () => {
-      try {
-        const res = await fetch(request.dataUrl);
-        const blob = await res.blob();
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': blob })
-        ]);
-        sendResponse({ success: true });
-      } catch (err) {
-        console.error('[ImageSaver] Clipboard write failed:', err);
-        sendResponse({ error: 'Ensure the page is focused. ' + err.message });
-      }
-    })();
-    return true; // Keep channel open for async response
+  } else if (request.action === 'triggerCopy') {
+    // Background script told us to copy an image (from context menu)
+    showToast('Copying image to clipboard...');
+    performClipboardCopy(request.srcUrl);
+    sendResponse({ success: true });
   }
 });
